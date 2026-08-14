@@ -1,0 +1,54 @@
+version: 2
+
+models:
+  - name: dimension_customers_t2
+    description: >
+      Grain: one customer × one valid historical state interval.
+      Interval contract is half-open [valid_from, valid_to). valid_from is
+      inclusive source time. valid_to is exclusive source time or null if current.
+      Deletes close the open interval and leave no current row. No tombstone row.
+    columns:
+      - name: customer_version_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - not_null
+      - name: valid_from
+        tests:
+          - not_null
+      - name: row_current
+        tests:
+          - not_null
+      - name: source_change_id
+        description: change_id of the mutation that opened this interval.
+        tests:
+          - not_null
+      - name: last_seen_ingested_at
+        description: Watermark only. Not used to compute valid_from or valid_to.
+    tests:
+      - no_overlapping_validity_windows:
+          entity_key: customer_id
+          valid_from: valid_from
+          valid_to: valid_to
+      - exactly_one_current_record:
+          entity_key: customer_id
+          current_flag: row_current
+          valid_to: valid_to
+
+  - name: fact_customer_events
+    description: >
+      Grain: one customer activity event. No customer attributes. Point-in-time
+      enrichment belongs in serving_customer_events_enriched.
+    columns:
+      - name: event_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - not_null
+      - name: event_timestamp
+        tests:
+          - not_null

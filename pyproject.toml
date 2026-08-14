@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "project-chronicle"
+version = "0.1.0"
+description = "Temporal correctness and CDC laboratory (SCD Type 2, late arrivals, point-in-time joins)"
+readme = "START_HERE.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+  "ruff==0.16.3",
+  "pyyaml==6.0.3",
+  "dbt-core==1.9.4",
+  "dbt-duckdb==1.9.2",
+  "duckdb==1.5.5",
+]
+
+[project.scripts]
+chronicle = "chronicle.generator:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chronicle"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

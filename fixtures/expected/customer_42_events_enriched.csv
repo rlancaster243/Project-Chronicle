@@ -1,0 +1,5 @@
+event_id,customer_id,event_name,event_timestamp,country_code,subscription_tier,account_status,email_verified,source_change_id
+evt_042_login,42,login,2026-07-05 10:00:00,US,free,active,false,chg_042_insert
+evt_042_purchase,42,purchase,2026-07-09 11:00:00,CA,free,active,false,chg_042_move
+evt_042_renewal,42,renewal,2026-07-15 16:00:00,CA,premium,active,false,chg_042_upgrade
+evt_042_support,42,support_contact,2026-07-25 09:00:00,,,,,

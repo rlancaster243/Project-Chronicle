@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: stg_customer_cdc_log
+    description: >
+      Grain: one received mutation record. Duplicates and replays are retained.
+      `ingest_cutoff` filters arrival time only.
+    columns:
+      - name: received_id
+        description: Surrogate identity of one physical delivery.
+        tests:
+          - not_null
+          - unique
+      - name: change_id
+        description: Mutation identity. Not unique at this grain.
+        tests:
+          - not_null
+      - name: customer_id
+        tests:
+          - not_null
+      - name: operation
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["INSERT", "UPDATE", "DELETE"]
+      - name: source_updated_at
+        description: When the mutation logically occurred in the source system.
+        tests:
+          - not_null
+      - name: ingested_at
+        description: When Chronicle received the mutation. May diverge from source time.
+        tests:
+          - not_null
+
+  - name: stg_customer_activity_events
+    description: >
+      Grain: one customer activity event. No customer attributes are attached.
+    columns:
+      - name: event_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - not_null
+      - name: event_timestamp
+        description: Event time used for the point-in-time join. Never ingested_at.
+        tests:
+          - not_null

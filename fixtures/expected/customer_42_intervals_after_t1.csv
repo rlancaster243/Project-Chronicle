@@ -1,0 +1,3 @@
+customer_id,country_code,subscription_tier,account_status,email_verified,valid_from,valid_to,row_current,source_change_id
+42,US,free,active,false,2026-07-01 09:00:00,2026-07-10 14:00:00,false,chg_042_insert
+42,CA,premium,active,false,2026-07-10 14:00:00,,true,chg_042_upgrade

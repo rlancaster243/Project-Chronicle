@@ -1,0 +1,58 @@
+name: chronicle
+version: 0.1.0
+config-version: 2
+profile: chronicle
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+seed-paths: ["../fixtures"]
+
+models:
+  chronicle:
+    staging:
+      +materialized: view
+      +tags: ["staging"]
+    intermediate:
+      +materialized: view
+      +tags: ["intermediate"]
+    core:
+      +materialized: incremental
+      +tags: ["core"]
+    serving:
+      +materialized: view
+      +tags: ["serving"]
+
+seeds:
+  chronicle:
+    +quote_columns: false
+    expected:
+      +enabled: false
+    customer_cdc_log:
+      +column_types:
+        change_id: varchar
+        customer_id: integer
+        operation: varchar
+        country_code: varchar
+        subscription_tier: varchar
+        account_status: varchar
+        email_verified: boolean
+        source_updated_at: timestamp
+        ingested_at: timestamp
+        scenario_tag: varchar
+    customer_activity_events:
+      +column_types:
+        event_id: varchar
+        customer_id: integer
+        event_name: varchar
+        event_timestamp: timestamp
+
+vars:
+  # NULL means "all received mutations". Tests set a timestamp to simulate
+  # incremental arrival batches (event time is never filtered by this var).
+  ingest_cutoff: null
+
+clean-targets:
+  - target
+  - dbt_packages

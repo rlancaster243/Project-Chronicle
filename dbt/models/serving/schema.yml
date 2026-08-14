@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: serving_customer_events_enriched
+    description: >
+      Grain: one customer activity event enriched with the SCD2 version valid
+      at event_timestamp. Unmatched events (after delete, or before insert)
+      have null customer attributes and matched_historical_state = false.
+    columns:
+      - name: event_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - not_null
+      - name: event_timestamp
+        tests:
+          - not_null
+      - name: matched_historical_state
+        tests:
+          - not_null

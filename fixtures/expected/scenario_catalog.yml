@@ -1,0 +1,75 @@
+# Hand-authored mutation-class index. Tags must appear on generated CDC rows.
+# Expected intervals for customer 42 are in sibling CSVs, not derived here.
+
+mutation_classes:
+  - id: normal_insert
+    customer_id: 1
+    tag: normal_insert
+  - id: normal_update
+    customer_id: 2
+    tag: normal_update
+  - id: normal_delete
+    customer_id: 3
+    tag: normal_delete
+  - id: duplicate_delivery
+    customer_id: 10
+    tag: duplicate_delivery
+    notes: Same change_id delivered twice; first-write wins.
+  - id: full_batch_replay
+    customer_id: 11
+    tag: full_batch_replay
+    notes: Entire change_id set replayed with later ingested_at.
+  - id: late_arriving
+    customer_id: 12
+    tag: late_arriving
+  - id: out_of_order
+    customer_id: 13
+    tag: out_of_order
+  - id: stale_change
+    customer_id: 14
+    tag: stale_change
+    notes: Older source_updated_at arrives after a newer mutation.
+  - id: multiple_changes
+    customer_id: 15
+    tag: multiple_changes
+  - id: multi_attribute
+    customer_id: 16
+    tag: multi_attribute
+  - id: same_day
+    customer_id: 17
+    tag: same_day
+  - id: same_timestamp_conflict
+    customer_id: 18
+    tag: same_timestamp_conflict
+    notes: Two change_ids share source_updated_at; order by change_id and flag.
+  - id: update_then_delete
+    customer_id: 19
+    tag: update_then_delete
+  - id: late_interval_repair
+    customer_id: 20
+    tag: late_interval_repair
+  - id: delete_closes_current
+    customer_id: 21
+    tag: delete_closes_current
+  - id: identical_values_distinct_ids
+    customer_id: 22
+    tag: identical_values_distinct_ids
+    notes: Two legitimate change_ids with identical attributes are not duplicates.
+  - id: customer_42_canonical
+    customer_id: 42
+    tag: customer_42_canonical
+    change_ids:
+      - chg_042_insert
+      - chg_042_upgrade
+      - chg_042_move
+      - chg_042_delete
+    physical_change_id_order:
+      - chg_042_insert
+      - chg_042_upgrade
+      - chg_042_move
+      - chg_042_move
+      - chg_042_delete
+
+ingest_cutoffs:
+  t1: "2026-07-10 23:59:59"
+  t2: null

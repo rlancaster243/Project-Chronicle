@@ -1,0 +1,9 @@
+chronicle:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      # Resolved from the repository root when using validate_ci.sh.
+      path: "{{ env_var('CHRONICLE_DUCKDB_PATH', 'data/chronicle.duckdb') }}"
+      threads: 1
+      schema: main

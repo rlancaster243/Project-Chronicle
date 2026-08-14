@@ -1,0 +1,19 @@
+version: 2
+
+seeds:
+  - name: customer_cdc_log
+    description: Append-only synthetic CDC landing table. Grain is one received row.
+    config:
+      column_types:
+        change_id: varchar
+        customer_id: integer
+        email_verified: boolean
+        source_updated_at: timestamp
+        ingested_at: timestamp
+  - name: customer_activity_events
+    description: Deterministic customer activity facts. Grain is one event.
+    config:
+      column_types:
+        event_id: varchar
+        customer_id: integer
+        event_timestamp: timestamp

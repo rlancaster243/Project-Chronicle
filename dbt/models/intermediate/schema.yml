@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: itm_customer_changes_deduplicated
+    description: >
+      Grain: one canonical change_id. First ingested_at wins. Distinct change_ids
+      with identical business values are both kept.
+    columns:
+      - name: change_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_id
+        tests:
+          - not_null
+      - name: ingested_at
+        description: Arrival time of the winning delivery of this change_id.
+
+  - name: itm_customer_change_sequence
+    description: >
+      Grain: one canonical change_id plus logical sequence metadata.
+      Ordered by source_updated_at, change_id. ingested_at is never the sort key.
+    columns:
+      - name: change_id
+        tests:
+          - not_null
+          - unique
+      - name: change_seq
+        description: 1-based logical sequence per customer.
+        tests:
+          - not_null
+      - name: next_source_updated_at
+        description: Source timestamp of the next logical mutation, or null.
+      - name: is_ambiguous_tie
+        description: >
+          True when another change_id shares source_updated_at and conflicts
+          on at least one attribute. History is still deterministic via change_id.
