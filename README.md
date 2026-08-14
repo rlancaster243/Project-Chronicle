@@ -23,30 +23,82 @@ row, and not the order the mutations showed up.
 `source_updated_at` is when the source system changed. `ingested_at` is when
 Chronicle saw the change. Those clocks diverge on purpose.
 
-## Architecture
+## Architecture Blueprint
 
-```text
-Synthetic mutable source
-        ↓
-Append-only CDC change log (generated fixtures/*.csv)
-        ↓
-dbt seeds (raw / landing)
-        ↓
-stg_customer_cdc_log                 grain: one received mutation
-        ↓
-itm_customer_changes_deduplicated    grain: one change_id
-        ↓
-itm_customer_change_sequence         grain: one change_id + logical order
-        ↓
-dimension_customers_t2               grain: one customer × one interval
-        ├─────────────┐
-        │             │
-        │      fact_customer_events
-        │             │
-        └──────┬──────┘
-               ↓
-serving_customer_events_enriched     grain: one event + PIT state
+```mermaid
+flowchart TB
+    subgraph SOURCE["1 · Deterministic Source"]
+        GEN["Python Generator<br/>seed = 42"]
+        CDC["Append-only CDC Change Log<br/>100 customers · 464 mutations"]
+        EVENTS["Customer Activity Events<br/>1,000 events"]
+
+        GEN --> CDC
+        GEN --> EVENTS
+    end
+
+    subgraph LANDING["2 · Landing and Staging"]
+        SEED["dbt Seeds<br/>raw / landing"]
+        STGCDC["stg_customer_cdc_log<br/>grain: one received mutation"]
+        STGEVT["stg_customer_activity_events<br/>grain: one activity event"]
+
+        CDC --> SEED
+        EVENTS --> SEED
+        SEED --> STGCDC
+        SEED --> STGEVT
+    end
+
+    subgraph TEMPORAL["3 · Temporal Reconstruction"]
+        DEDUP["itm_customer_changes_deduplicated<br/>grain: one change_id<br/>first delivery wins"]
+        SEQUENCE["itm_customer_change_sequence<br/>order: source_updated_at → change_id"]
+        SCD2["dimension_customers_t2<br/>grain: customer × validity interval<br/>half-open [valid_from, valid_to)"]
+
+        STGCDC --> DEDUP
+        DEDUP --> SEQUENCE
+        SEQUENCE --> SCD2
+    end
+
+    subgraph FACTS["4 · Event Facts"]
+        FACT["fact_customer_events<br/>grain: one activity event<br/>no current-state attributes"]
+        STGEVT --> FACT
+    end
+
+    subgraph SERVING["5 · Point-in-Time Serving"]
+        PIT{"Point-in-time join<br/>event_timestamp within<br/>customer validity interval"}
+        ENRICHED["serving_customer_events_enriched<br/>grain: one event + historical state"]
+
+        SCD2 --> PIT
+        FACT --> PIT
+        PIT --> ENRICHED
+    end
+
+    subgraph CORRECTNESS["6 · Correctness and Failure Controls"]
+        EXPECTED["Hand-authored Expected Fixtures<br/>independent ground truth"]
+        TEMPTEST["Temporal Integrity Tests<br/>no overlapping intervals<br/>exactly one current row"]
+        INCR["Incremental Correctness Tests<br/>late-arrival repair<br/>full-refresh parity<br/>idempotent reruns"]
+        PITTEST["Point-in-Time Tests<br/>historical-state match<br/>post-delete unmatched"]
+        ADV["Adversarial Failure Path<br/>sort by ingested_at → expected failure"]
+        CI["GitHub Actions<br/>Ruff · pytest · dbt parse<br/>seed · run · test"]
+
+        EXPECTED -. validates .-> SCD2
+        EXPECTED -. validates .-> ENRICHED
+        SCD2 -.-> TEMPTEST
+        SCD2 -.-> INCR
+        ENRICHED -.-> PITTEST
+        ADV -. challenges .-> SCD2
+        TEMPTEST --> CI
+        INCR --> CI
+        PITTEST --> CI
+        ADV --> CI
+    end
+
+    STGCDC -. "ingested_at = arrival / repair watermark" .-> SCD2
+    SEQUENCE -. "source_updated_at = historical truth" .-> SCD2
 ```
+
+The central contract is deliberate: `source_updated_at` determines historical
+sequence and SCD Type 2 validity, while `ingested_at` is retained as arrival-time
+metadata and the incremental-repair watermark. Activity facts remain attribute-free
+until the serving layer performs the point-in-time join.
 
 Details: [`docs/architecture.md`](docs/architecture.md).
 Temporal contract: [`docs/adr/ADR-001-temporal-modeling-contract.md`](docs/adr/ADR-001-temporal-modeling-contract.md).
